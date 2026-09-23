@@ -1,12 +1,19 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:angcla_advmobprog_longexam1/models/comment.dart';
 
-/// Provider for managing session-level interaction state across screens (NewsFeed, Detail, Profile).
+/// Provider for managing interaction state across screens (NewsFeed, Detail, Profile, Notifications).
 ///
-/// Uses the real API [Post.id] (int) as the key.
-/// - Maintains like status (liked/unliked) and adjusted like count per post ID.
-/// - Maintains session-level comments per post ID so newly added comments persist during the session.
+/// Features persistent storage via [SharedPreferences] so that likes and user-added comments
+/// survive across app restarts and user logouts.
 class PostInteractionProvider extends ChangeNotifier {
+  static const String _prefKeyLikedItems = 'persistent_liked_items';
+  static const String _prefKeyLikeCounts = 'persistent_like_counts';
+  static const String _prefKeyComments = 'persistent_post_comments';
+
+  final SharedPreferences? _prefs;
+
   // Key (String) -> isLiked (supports both "post_123" and "notif_user_post")
   final Map<String, bool> _likedItems = {};
 
@@ -16,7 +23,80 @@ class PostInteractionProvider extends ChangeNotifier {
   // Post.id -> list of session comments (server comments + locally added comments)
   final Map<int, List<Comment>> _postComments = {};
 
+  PostInteractionProvider({SharedPreferences? prefs}) : _prefs = prefs {
+    _loadFromPrefs();
+  }
+
   String _keyFromId(int postId) => 'post_$postId';
+
+  void _loadFromPrefs() {
+    final prefs = _prefs;
+    if (prefs == null) return;
+
+    // 1. Liked Items
+    final likedStr = prefs.getString(_prefKeyLikedItems);
+    if (likedStr != null && likedStr.isNotEmpty) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(likedStr);
+        decoded.forEach((key, value) {
+          if (value is bool) {
+            _likedItems[key] = value;
+          }
+        });
+      } catch (_) {}
+    }
+
+    // 2. Like Counts
+    final countsStr = prefs.getString(_prefKeyLikeCounts);
+    if (countsStr != null && countsStr.isNotEmpty) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(countsStr);
+        decoded.forEach((key, value) {
+          if (value is num) {
+            _likeCounts[key] = value.toInt();
+          }
+        });
+      } catch (_) {}
+    }
+
+    // 3. Comments
+    final commentsStr = prefs.getString(_prefKeyComments);
+    if (commentsStr != null && commentsStr.isNotEmpty) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(commentsStr);
+        decoded.forEach((key, value) {
+          final int? postId = int.tryParse(key);
+          if (postId != null && value is List) {
+            _postComments[postId] = value
+                .map((item) =>
+                    Comment.fromJson(Map<String, dynamic>.from(item as Map)))
+                .toList();
+          }
+        });
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _persistLikes() async {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    try {
+      await prefs.setString(_prefKeyLikedItems, jsonEncode(_likedItems));
+      await prefs.setString(_prefKeyLikeCounts, jsonEncode(_likeCounts));
+    } catch (_) {}
+  }
+
+  Future<void> _persistComments() async {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    try {
+      final Map<String, dynamic> data = {};
+      _postComments.forEach((postId, comments) {
+        data[postId.toString()] = comments.map((c) => c.toJson()).toList();
+      });
+      await prefs.setString(_prefKeyComments, jsonEncode(data));
+    } catch (_) {}
+  }
 
   // ==========================================
   // LIKES API (String Key & int PostId)
@@ -38,6 +118,7 @@ class PostInteractionProvider extends ChangeNotifier {
       return _likeCounts[key]!;
     }
     _likeCounts[key] = fallbackLikes;
+    _persistLikes();
     return fallbackLikes;
   }
 
@@ -62,6 +143,7 @@ class PostInteractionProvider extends ChangeNotifier {
       _likeCounts[key] = (count > 0) ? count - 1 : 0;
     }
 
+    _persistLikes();
     notifyListeners();
   }
 
@@ -98,6 +180,7 @@ class PostInteractionProvider extends ChangeNotifier {
         }
       }
     }
+    _persistComments();
     notifyListeners();
   }
 
@@ -116,15 +199,22 @@ class PostInteractionProvider extends ChangeNotifier {
 
     if (!alreadyExists) {
       _postComments[postId]!.add(newComment);
+      _persistComments();
       notifyListeners();
     }
   }
 
-  /// Resets all interaction state (e.g. upon user sign-out).
-  void clearSession() {
+  /// Resets all interaction state. Pass [clearStorage: true] to also clear persistent storage.
+  Future<void> clearSession({bool clearStorage = false}) async {
     _likedItems.clear();
     _likeCounts.clear();
     _postComments.clear();
+    final prefs = _prefs;
+    if (clearStorage && prefs != null) {
+      await prefs.remove(_prefKeyLikedItems);
+      await prefs.remove(_prefKeyLikeCounts);
+      await prefs.remove(_prefKeyComments);
+    }
     notifyListeners();
   }
 }

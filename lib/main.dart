@@ -23,7 +23,7 @@ void main() async {
           create: (_) => ThemeProvider(initialDarkMode: isDarkMode),
         ),
         ChangeNotifierProvider(
-          create: (_) => PostInteractionProvider(),
+          create: (_) => PostInteractionProvider(prefs: prefs),
         ),
       ],
       child: const AngclaFacebook(),

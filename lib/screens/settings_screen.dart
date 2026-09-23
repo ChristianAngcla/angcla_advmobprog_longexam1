@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import 'package:angcla_advmobprog_longexam1/constants.dart';
-import 'package:angcla_advmobprog_longexam1/providers/post_interaction_provider.dart';
 import 'package:angcla_advmobprog_longexam1/providers/theme_provider.dart';
 import 'package:angcla_advmobprog_longexam1/screens/signin_screen.dart';
 import 'package:angcla_advmobprog_longexam1/services/user_service.dart';
@@ -53,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
-      context.read<PostInteractionProvider>().clearSession();
       await _userService.logout();
 
       if (!mounted) return;
