@@ -82,6 +82,30 @@ class _PostCardState extends State<PostCard> {
     provider.toggleItemLike(_interactionKey, initialLikes);
   }
 
+  void _navigateToDetail({bool focusComment = false}) {
+    final String key = _interactionKey;
+    final int initialLikes = widget.post?.likes ?? widget.numOfLikes;
+    final int currentLikes =
+        context.read<PostInteractionProvider>().getItemLikes(key, initialLikes);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          post: widget.post,
+          postKey: key,
+          userName: widget.userName,
+          postContent: widget.postContent,
+          date: widget.date,
+          numOfLikes: currentLikes,
+          imageUrl: widget.imageUrl,
+          profileImageUrl: widget.profileImageUrl,
+          focusCommentInput: focusComment,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -97,21 +121,7 @@ class _PostCardState extends State<PostCard> {
         isDark ? Colors.grey.shade400 : Colors.grey.shade700;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DetailScreen(
-            post: widget.post,
-            postKey: key,
-            userName: widget.userName,
-            postContent: widget.postContent,
-            date: widget.date,
-            numOfLikes: currentLikes,
-            imageUrl: widget.imageUrl,
-            profileImageUrl: widget.profileImageUrl,
-          ),
-        ),
-      ),
+      onTap: () => _navigateToDetail(focusComment: false),
       child: Card(
         color: Theme.of(context).cardColor,
         margin: EdgeInsets.all(ScreenUtil().setSp(10)),
@@ -234,7 +244,8 @@ class _PostCardState extends State<PostCard> {
                           ),
                         ),
                         TextButton.icon(
-                          onPressed: () {},
+                          onPressed: () =>
+                              _navigateToDetail(focusComment: true),
                           icon: Icon(
                             Icons.comment,
                             color: actionColor,
@@ -260,37 +271,40 @@ class _PostCardState extends State<PostCard> {
                     ),
               (widget.isAds)
                   ? const SizedBox()
-                  : Row(
-                      children: [
-                        Icon(Icons.person, color: secondaryTextColor),
-                        SizedBox(width: ScreenUtil().setWidth(10)),
-                        Container(
-                          padding: EdgeInsets.fromLTRB(
-                            ScreenUtil().setSp(10),
-                            0,
-                            0,
-                            0,
-                          ),
-                          alignment: Alignment.centerLeft,
-                          height: ScreenUtil().setHeight(25),
-                          width: ScreenUtil().setWidth(330),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF2C2C2C)
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(ScreenUtil().setSp(10)),
+                  : GestureDetector(
+                      onTap: () => _navigateToDetail(focusComment: true),
+                      child: Row(
+                        children: [
+                          Icon(Icons.person, color: secondaryTextColor),
+                          SizedBox(width: ScreenUtil().setWidth(10)),
+                          Container(
+                            padding: EdgeInsets.fromLTRB(
+                              ScreenUtil().setSp(10),
+                              0,
+                              0,
+                              0,
+                            ),
+                            alignment: Alignment.centerLeft,
+                            height: ScreenUtil().setHeight(25),
+                            width: ScreenUtil().setWidth(330),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF2C2C2C)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(ScreenUtil().setSp(10)),
+                              ),
+                            ),
+                            child: CustomFont(
+                              text: 'Write a comment...',
+                              fontSize: ScreenUtil().setSp(11),
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
-                          child: CustomFont(
-                            text: 'Write a comment...',
-                            fontSize: ScreenUtil().setSp(11),
-                            color: isDark
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
               (widget.isAds)
                   ? Container(
@@ -319,21 +333,7 @@ class _PostCardState extends State<PostCard> {
                               Icons.arrow_right_alt,
                               color: FB_LIGHT_PRIMARY,
                             ),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailScreen(
-                                  post: widget.post,
-                                  postKey: key,
-                                  userName: widget.userName,
-                                  postContent: widget.postContent,
-                                  date: widget.date,
-                                  numOfLikes: currentLikes,
-                                  imageUrl: widget.imageUrl,
-                                  profileImageUrl: widget.profileImageUrl,
-                                ),
-                              ),
-                            ),
+                            onTap: () => _navigateToDetail(focusComment: false),
                           ),
                         ],
                       ),
@@ -344,10 +344,13 @@ class _PostCardState extends State<PostCard> {
                   : SizedBox(height: ScreenUtil().setHeight(10)),
               (widget.isAds)
                   ? const SizedBox()
-                  : CustomFont(
-                      text: 'View comments',
-                      fontSize: ScreenUtil().setSp(12),
-                      fontWeight: FontWeight.bold,
+                  : GestureDetector(
+                      onTap: () => _navigateToDetail(focusComment: false),
+                      child: CustomFont(
+                        text: 'View comments',
+                        fontSize: ScreenUtil().setSp(12),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ],
           ),

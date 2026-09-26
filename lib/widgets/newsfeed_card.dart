@@ -134,7 +134,22 @@ class NewsFeedCard extends StatelessWidget {
                   IconTextButton(
                     icon: Icons.chat_bubble,
                     label: 'Comment',
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailScreen(
+                            userName: userName,
+                            postContent: postContent,
+                            date: date,
+                            numOfLikes: numOfLikes,
+                            imageUrl: postImage ?? '',
+                            profileImageUrl: userAvatar ?? '',
+                            focusCommentInput: true,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   IconTextButton(
                     icon: Icons.share,

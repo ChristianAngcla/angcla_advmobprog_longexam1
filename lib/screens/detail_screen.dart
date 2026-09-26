@@ -21,6 +21,7 @@ class DetailScreen extends StatefulWidget {
   final String imageUrl;
   final String profileImageUrl;
   final String? postKey;
+  final bool focusCommentInput;
 
   const DetailScreen({
     super.key,
@@ -32,6 +33,7 @@ class DetailScreen extends StatefulWidget {
     this.numOfLikes = 0,
     this.imageUrl = '',
     this.profileImageUrl = '',
+    this.focusCommentInput = false,
   });
 
   @override
@@ -50,6 +52,8 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _isSubmittingComment = false;
 
   final TextEditingController _commentController = TextEditingController();
+  final FocusNode _commentFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   String get _interactionKey {
     if (widget.post != null && widget.post!.id > 0) {
@@ -65,12 +69,31 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _loadDetailData();
+    if (widget.focusCommentInput) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCommentsAndFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
+    _commentFocusNode.dispose();
+    _scrollController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _scrollToCommentsAndFocus() {
+    if (!mounted) return;
+    _commentFocusNode.requestFocus();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _loadDetailData() async {
@@ -227,6 +250,7 @@ class _DetailScreenState extends State<DetailScreen> {
         color: Theme.of(context).scaffoldBackgroundColor,
         height: ScreenUtil().screenHeight,
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -332,7 +356,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                     TextButton.icon(
-                      onPressed: () {},
+                      onPressed: _scrollToCommentsAndFocus,
                       icon: Icon(Icons.comment, color: actionColor),
                       label: CustomFont(
                         text: 'Comment',
@@ -543,6 +567,7 @@ class _DetailScreenState extends State<DetailScreen> {
               ),
               child: TextField(
                 controller: _commentController,
+                focusNode: _commentFocusNode,
                 enabled: !isLegacy && !isGuest && !_isSubmittingComment,
                 style: TextStyle(
                   fontSize: ScreenUtil().setSp(13),
