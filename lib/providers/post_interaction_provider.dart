@@ -170,10 +170,7 @@ class PostInteractionProvider extends ChangeNotifier {
       final existingList = _postComments[postId]!;
       for (final serverComment in serverComments) {
         final bool alreadyExists = existingList.any(
-          (c) =>
-              (c.id > 0 && c.id == serverComment.id) ||
-              (c.body == serverComment.body &&
-                  c.username == serverComment.username),
+          (c) => c.id == serverComment.id,
         );
         if (!alreadyExists) {
           existingList.add(serverComment);
@@ -185,23 +182,24 @@ class PostInteractionProvider extends ChangeNotifier {
   }
 
   /// Appends a newly created comment to the post's session comment list.
-  /// Prevents duplicate insertion.
+  /// Assigns a unique timestamp-based ID to ensure multiple comments can be posted
+  /// without colliding with mock server response IDs (DummyJSON returns id: 341 for every added comment).
   void addComment(int postId, Comment newComment) {
     if (!_postComments.containsKey(postId)) {
       _postComments[postId] = [];
     }
 
-    final bool alreadyExists = _postComments[postId]!.any(
-      (c) =>
-          (c.id > 0 && c.id == newComment.id) ||
-          (c.body == newComment.body && c.userId == newComment.userId),
-    );
-
-    if (!alreadyExists) {
-      _postComments[postId]!.add(newComment);
-      _persistComments();
-      notifyListeners();
+    final existingList = _postComments[postId]!;
+    int uniqueId = newComment.id;
+    final bool idCollides = existingList.any((c) => c.id == uniqueId);
+    if (uniqueId <= 0 || uniqueId == 341 || idCollides) {
+      uniqueId = DateTime.now().millisecondsSinceEpoch;
     }
+
+    final commentToAdd = newComment.copyWith(id: uniqueId);
+    existingList.add(commentToAdd);
+    _persistComments();
+    notifyListeners();
   }
 
   /// Resets all interaction state. Pass [clearStorage: true] to also clear persistent storage.

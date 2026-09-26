@@ -57,4 +57,24 @@ class Comment {
       },
     };
   }
+
+  Comment copyWith({
+    int? id,
+    String? body,
+    int? postId,
+    int? likes,
+    int? userId,
+    String? username,
+    String? fullName,
+  }) {
+    return Comment(
+      id: id ?? this.id,
+      body: body ?? this.body,
+      postId: postId ?? this.postId,
+      likes: likes ?? this.likes,
+      userId: userId ?? this.userId,
+      username: username ?? this.username,
+      fullName: fullName ?? this.fullName,
+    );
+  }
 }
