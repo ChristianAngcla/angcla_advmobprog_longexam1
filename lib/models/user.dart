@@ -21,6 +21,14 @@ class User {
     this.refreshToken,
   });
 
+  /// Formatted name for UI display. Prefers "First Last", then "username", then "User $id".
+  String get displayName {
+    final full = '$firstName $lastName'.trim();
+    if (full.isNotEmpty) return full;
+    if (username.isNotEmpty) return username;
+    return id > 0 ? 'User $id' : 'User';
+  }
+
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: (json['id'] as num?)?.toInt() ?? 0,

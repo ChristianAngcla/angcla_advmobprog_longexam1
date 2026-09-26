@@ -7,6 +7,7 @@ import 'package:angcla_advmobprog_longexam1/constants.dart';
 import 'package:angcla_advmobprog_longexam1/models/post.dart';
 import 'package:angcla_advmobprog_longexam1/providers/post_interaction_provider.dart';
 import 'package:angcla_advmobprog_longexam1/screens/detail_screen.dart';
+import 'package:angcla_advmobprog_longexam1/services/user_service.dart';
 import 'package:angcla_advmobprog_longexam1/widgets/custom_font.dart';
 import 'package:angcla_advmobprog_longexam1/widgets/custom_inkwell_button.dart';
 
@@ -41,15 +42,25 @@ class PostCard extends StatefulWidget {
     String profileImageUrl = '',
     String imageUrl = '',
   }) {
+    final cachedUser = UserService.getCachedUser(post.userId);
+    final resolvedUserName = (userName != null && userName.trim().isNotEmpty)
+        ? userName
+        : (cachedUser?.displayName ??
+            (post.userId > 0 ? 'User ${post.userId}' : 'User'));
+
+    final resolvedProfileImage = profileImageUrl.isNotEmpty
+        ? profileImageUrl
+        : (cachedUser?.image ?? '');
+
     return PostCard(
       key: key,
       post: post,
-      userName: userName ?? (post.userId > 0 ? 'User ${post.userId}' : 'User'),
+      userName: resolvedUserName,
       postContent: post.body,
       date: post.createdAt,
       numOfLikes: post.likes,
       imageUrl: imageUrl,
-      profileImageUrl: profileImageUrl,
+      profileImageUrl: resolvedProfileImage,
       isAds: false,
     );
   }
@@ -128,7 +139,7 @@ class _PostCardState extends State<PostCard> {
                                             value: downloadProgress.progress,
                                           ),
                                   errorWidget: (context, url, error) =>
-                                      Icon(Icons.error, size: 100.sp),
+                                      Icon(Icons.person, size: 20.sp, color: secondaryTextColor),
                                 )
                               : Image.asset(
                                   widget.profileImageUrl,

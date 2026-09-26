@@ -336,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final post = _posts[index];
         return PostCard.fromPost(
           post: post,
-          userName: widget.user.username,
+          userName: widget.user.displayName,
           profileImageUrl: widget.user.image,
         );
       },

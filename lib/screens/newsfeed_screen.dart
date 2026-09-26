@@ -4,9 +4,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:angcla_advmobprog_longexam1/constants.dart';
 import 'package:angcla_advmobprog_longexam1/models/post.dart';
+import 'package:angcla_advmobprog_longexam1/models/user.dart';
 import 'package:angcla_advmobprog_longexam1/services/post_service.dart';
+import 'package:angcla_advmobprog_longexam1/services/user_service.dart';
 import 'package:angcla_advmobprog_longexam1/widgets/custom_font.dart';
 import 'package:angcla_advmobprog_longexam1/widgets/post_card.dart';
+
+class FeedData {
+  final List<Post> posts;
+  final Map<int, User> users;
+
+  const FeedData({
+    required this.posts,
+    required this.users,
+  });
+}
 
 class NewsFeedScreen extends StatefulWidget {
   const NewsFeedScreen({super.key});
@@ -17,29 +29,43 @@ class NewsFeedScreen extends StatefulWidget {
 
 class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final PostService _postService = PostService();
-  late Future<List<Post>> _postsFuture;
+  final UserService _userService = UserService();
+  late Future<FeedData> _feedFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadPosts();
+    _loadFeed();
   }
 
-  void _loadPosts() {
-    _postsFuture = _postService.getPosts();
+  void _loadFeed() {
+    _feedFuture = _fetchFeedData();
   }
 
-  Future<void> _refreshPosts() async {
+  Future<FeedData> _fetchFeedData() async {
+    final postsFuture = _postService.getPosts();
+    final usersFuture = _userService.getUsersMap();
+
+    final posts = await postsFuture;
+    Map<int, User> users = {};
+    try {
+      users = await usersFuture;
+    } catch (_) {}
+
+    return FeedData(posts: posts, users: users);
+  }
+
+  Future<void> _refreshFeed() async {
     setState(() {
-      _loadPosts();
+      _loadFeed();
     });
-    await _postsFuture;
+    await _feedFuture;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Post>>(
-      future: _postsFuture,
+    return FutureBuilder<FeedData>(
+      future: _feedFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -71,7 +97,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _loadPosts();
+                        _loadFeed();
                       });
                     },
                     child: const Text(
@@ -85,7 +111,8 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
           );
         }
 
-        final posts = snapshot.data ?? [];
+        final posts = snapshot.data?.posts ?? [];
+        final users = snapshot.data?.users ?? {};
 
         if (posts.isEmpty) {
           return Center(
@@ -101,7 +128,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
 
         return RefreshIndicator(
           color: FB_DARK_PRIMARY,
-          onRefresh: _refreshPosts,
+          onRefresh: _refreshFeed,
           child: ListView.builder(
             itemCount: posts.length + 1, // +1 for the advertisement carousel
             itemBuilder: (context, index) {
@@ -109,7 +136,13 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                 return _buildAdCarousel(context);
               }
               final postIndex = index > 1 ? index - 1 : index;
-              return PostCard.fromPost(post: posts[postIndex]);
+              final post = posts[postIndex];
+              final user = users[post.userId] ?? UserService.getCachedUser(post.userId);
+              return PostCard.fromPost(
+                post: post,
+                userName: user?.displayName,
+                profileImageUrl: user?.image ?? '',
+              );
             },
           ),
         );

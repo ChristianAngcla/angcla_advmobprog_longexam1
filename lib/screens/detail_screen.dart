@@ -459,7 +459,7 @@ class _DetailScreenState extends State<DetailScreen> {
             ? comment.fullName
             : (comment.username.trim().isNotEmpty
                 ? comment.username
-                : (comment.userId > 0 ? 'User ${comment.userId}' : 'User'));
+                : (UserService.getCachedUser(comment.userId)?.displayName ?? (comment.userId > 0 ? 'User ${comment.userId}' : 'User')));
 
         return Container(
           margin: EdgeInsets.only(bottom: ScreenUtil().setHeight(10)),
